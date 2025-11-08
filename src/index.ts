@@ -3,7 +3,7 @@ import path from "node:path";
 
 type Row = Record<string, any>;
 
-export class MicroDB {
+export class MicroSQL {
   private dir: string;
 
   constructor(dir: string) {

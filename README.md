@@ -1,30 +1,30 @@
-# MicroDB
+# MicroSQL
 
 > A lightweight, git-friendly SQL database that stores data as JSON files
 
-**MicroDB** is a zero-dependency database engine for JavaScript/TypeScript projects. Run SQL-like queries on JSON files without SQLite, Postgres, or any database server. Perfect for open source projects where you want users to clone and run immediately.
+**MicroSQL** is a zero-dependency database engine for JavaScript/TypeScript projects. Run SQL-like queries on JSON files without SQLite, Postgres, or any database server. Perfect for open source projects where you want users to clone and run immediately.
 
 ---
 
-## Why MicroDB?
+## Why MicroSQL?
 
 - **Zero setup** - No database installation, no configuration files, just JSON
 - **Git-friendly** - Human-readable diffs, easy to version control, no binary `.db` files
 - **Zero dependencies** - Pure Node.js, works everywhere
-- **Familiar syntax** - If you know SQL, you already know MicroDB
+- **Familiar syntax** - If you know SQL, you already know MicroSQL
 
 ---
 
 ## Installation
 
 ```bash
-npm install micro-db
+npm install microsql
 ```
 
 Or with pnpm:
 
 ```bash
-pnpm add micro-db
+pnpm add microsql
 ```
 
 ---
@@ -32,9 +32,9 @@ pnpm add micro-db
 ## Quick Start
 
 ```typescript
-import { MicroDB } from "micro-db";
+import { MicroSQL } from "micro-db";
 
-const db = new MicroDB("./data");
+const db = new MicroSQL("./data");
 
 db.query(`INSERT INTO users (id, name, age, city) VALUES (1, "Alice", 25, "Berlin")`);
 db.query(`INSERT INTO users (id, name, age, city) VALUES (2, "Bob", 30, "Paris")`);
@@ -77,7 +77,7 @@ Each table is stored as `./data/users.json` - no database server required.
 ### Basic CRUD
 
 ```typescript
-const db = new MicroDB("./data");
+const db = new MicroSQL("./data");
 
 db.query(`INSERT INTO products (id, name, price) VALUES (1, "Laptop", 999)`);
 
@@ -116,7 +116,7 @@ db.query(`
 
 ## Use Cases
 
-MicroDB is perfect for:
+MicroSQL is perfect for:
 
 - **Open source projects** - Users can clone and run without database setup
 - **Prototypes and demos** - Quick data persistence without infrastructure
@@ -125,7 +125,7 @@ MicroDB is perfect for:
 - **Educational projects** - Teach SQL concepts without complex setup
 - **Small applications** - Where SQLite is overkill
 
-### When NOT to Use MicroDB
+### When NOT to Use MicroSQL
 
 - High-traffic production applications (no concurrency control)
 - Large datasets (>10,000 rows per table)

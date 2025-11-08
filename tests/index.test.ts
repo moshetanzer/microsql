@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { MicroDB } from "../src/index";
+import { MicroSQL } from "../src/index";
 import { rmSync, mkdirSync, existsSync } from "fs";
 import { afterAll, beforeAll } from "vitest";
 
@@ -15,12 +15,12 @@ afterAll(() => {
 });
 
 describe("MicroDB - Edge Cases", () => {
-  let db: MicroDB;
+  let db: MicroSQL;
 
   beforeEach(() => {
     if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true });
     mkdirSync(TEST_DIR);
-    db = new MicroDB(TEST_DIR);
+    db = new MicroSQL(TEST_DIR);
   });
 
   it("handles commas in INSERT values", () => {
