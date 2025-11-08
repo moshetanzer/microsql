@@ -1,6 +1,6 @@
 {
   "name": "microsql",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A tiny file-based database for TypeScript and JavaScript projects.",
   "type": "module",
   "license": "MIT",
