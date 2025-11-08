@@ -24,7 +24,7 @@
     "test": "vitest",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "pnpm run build",
-    "lint" : "eslint src --ext .ts",
+    "lint": "eslint src --ext .ts",
     "release": "bumpp && npm publish"
   },
   "devDependencies": {
