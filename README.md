@@ -178,5 +178,3 @@ Each JSON file contains an array of objects:
 ## License
 
 MIT
-
----
