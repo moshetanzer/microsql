@@ -59,6 +59,7 @@ Each table is stored as `./data/users.json` - no database server required.
 | **DELETE** | `DELETE FROM users WHERE id = 1` |
 | **WHERE** | `WHERE age > 25 AND city = "Berlin"` |
 | **LIKE** | `WHERE email LIKE "%@gmail.com"` |
+| **JOIN** | `JOIN orders ON users.id = orders.user_id WHERE users.age > 25` |
 | **IN** | `WHERE id IN (1, 2, 3)` |
 | **ORDER BY** | `ORDER BY age DESC` |
 | **LIMIT** | `LIMIT 10` |
@@ -169,9 +170,7 @@ Each JSON file contains an array of objects:
 ## Roadmap
 
 - [ ] GROUP BY and aggregate functions (COUNT, SUM, AVG)
-- [ ] JOIN support (INNER, LEFT)
 - [ ] Type coercion (proper number/boolean handling)
-- [ ] Query result streaming for large datasets
 
 ---
 
