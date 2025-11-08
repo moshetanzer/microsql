@@ -14,7 +14,7 @@ afterAll(() => {
   if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true, force: true });
 });
 
-describe("MicroDB - Edge Cases", () => {
+describe("MicroSQL - Edge Cases", () => {
   let db: MicroSQL;
 
   beforeEach(() => {
@@ -166,4 +166,82 @@ describe("MicroDB - Edge Cases", () => {
     const result = db.query(`SELECT name FROM users WHERE name LIKE "alice"`);
     expect(result).toHaveLength(3);
   });
+  it("handles INNER JOIN", () => {
+  db.query(`INSERT INTO users (id, name) VALUES (1, "Alice")`);
+  db.query(`INSERT INTO users (id, name) VALUES (2, "Bob")`);
+  db.query(`INSERT INTO orders (id, user_id, product) VALUES (1, 1, "Laptop")`);
+  db.query(`INSERT INTO orders (id, user_id, product) VALUES (2, 1, "Mouse")`);
+  db.query(`INSERT INTO orders (id, user_id, product) VALUES (3, 2, "Keyboard")`);
+
+  const result = db.query(
+    `SELECT users.name, orders.product FROM users JOIN orders ON users.id = orders.user_id`
+  );
+  
+  expect(result).toHaveLength(3);
+  expect(result).toEqual([
+    { "users.name": "Alice", "orders.product": "Laptop" },
+    { "users.name": "Alice", "orders.product": "Mouse" },
+    { "users.name": "Bob", "orders.product": "Keyboard" }
+  ]);
 });
+
+it("handles INNER JOIN with INNER keyword", () => {
+  db.query(`INSERT INTO users (id, name) VALUES (1, "Alice")`);
+  db.query(`INSERT INTO orders (id, user_id, product) VALUES (1, 1, "Laptop")`);
+
+  const result = db.query(
+    `SELECT users.name, orders.product FROM users INNER JOIN orders ON users.id = orders.user_id`
+  );
+  
+  expect(result).toHaveLength(1);
+  expect(result[0]).toEqual({ "users.name": "Alice", "orders.product": "Laptop" });
+});
+
+it("handles LEFT JOIN", () => {
+  db.query(`INSERT INTO users (id, name) VALUES (1, "Alice")`);
+  db.query(`INSERT INTO users (id, name) VALUES (2, "Bob")`);
+  db.query(`INSERT INTO users (id, name) VALUES (3, "Carol")`);
+  db.query(`INSERT INTO orders (id, user_id, product) VALUES (1, 1, "Laptop")`);
+  db.query(`INSERT INTO orders (id, user_id, product) VALUES (2, 1, "Mouse")`);
+
+  const result = db.query(
+    `SELECT users.name, orders.product FROM users LEFT JOIN orders ON users.id = orders.user_id`
+  );
+  
+  expect(result).toHaveLength(4);
+  expect(result.map(r => r["users.name"]).sort()).toEqual(["Alice", "Alice", "Bob", "Carol"]);
+  
+  const bobOrder = result.find(r => r["users.name"] === "Bob");
+  expect(bobOrder["orders.product"]).toBeUndefined();
+});
+
+it("handles JOIN with WHERE clause", () => {
+  db.query(`INSERT INTO users (id, name, age) VALUES (1, "Alice", 25)`);
+  db.query(`INSERT INTO users (id, name, age) VALUES (2, "Bob", 30)`);
+  db.query(`INSERT INTO orders (id, user_id, product) VALUES (1, 1, "Laptop")`);
+  db.query(`INSERT INTO orders (id, user_id, product) VALUES (2, 2, "Mouse")`);
+
+  const result = db.query(
+    `SELECT users.name, orders.product FROM users JOIN orders ON users.id = orders.user_id WHERE users.age > 25`
+  );
+  
+  expect(result).toHaveLength(1);
+  expect(result[0]).toEqual({ "users.name": "Bob", "orders.product": "Mouse" });
+});
+
+it("handles JOIN with ORDER BY and LIMIT", () => {
+  db.query(`INSERT INTO users (id, name) VALUES (1, "Alice")`);
+  db.query(`INSERT INTO users (id, name) VALUES (2, "Bob")`);
+  db.query(`INSERT INTO orders (id, user_id, product, price) VALUES (1, 1, "Laptop", 1000)`);
+  db.query(`INSERT INTO orders (id, user_id, product, price) VALUES (2, 1, "Mouse", 20)`);
+  db.query(`INSERT INTO orders (id, user_id, product, price) VALUES (3, 2, "Keyboard", 50)`);
+
+  const result = db.query(
+    `SELECT users.name, orders.product, orders.price FROM users JOIN orders ON users.id = orders.user_id ORDER BY orders.price DESC LIMIT 2`
+  );
+  
+  expect(result).toHaveLength(2);
+  expect(result[0]["orders.product"]).toBe("Laptop");
+  expect(result[1]["orders.product"]).toBe("Keyboard");
+});
+})

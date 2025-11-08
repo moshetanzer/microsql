@@ -38,6 +38,22 @@ export class MicroSQL {
   }
 
   private select(sql: string) {
+    const joinMatch = sql.match(
+      /SELECT (.+?) FROM (\w+)\s+(?:INNER\s+)?JOIN\s+(\w+)\s+ON\s+(\w+)\.(\w+)\s*=\s*(\w+)\.(\w+)(?: WHERE (.*?))?(?: ORDER BY (\w+)(?:\.(\w+))?(?: (ASC|DESC))?)?(?: LIMIT (\d+))?$/i
+    );
+    
+    const leftJoinMatch = sql.match(
+      /SELECT (.+?) FROM (\w+)\s+LEFT\s+JOIN\s+(\w+)\s+ON\s+(\w+)\.(\w+)\s*=\s*(\w+)\.(\w+)(?: WHERE (.*?))?(?: ORDER BY (\w+)(?:\.(\w+))?(?: (ASC|DESC))?)?(?: LIMIT (\d+))?$/i
+    );
+
+    if (joinMatch) {
+      return this.selectWithJoin(sql, joinMatch, "INNER");
+    }
+    
+    if (leftJoinMatch) {
+      return this.selectWithJoin(sql, leftJoinMatch, "LEFT");
+    }
+
     const match = sql.match(
       /SELECT (.+?) FROM (\w+)(?: WHERE (.*?))?(?: ORDER BY (\w+)(?: (ASC|DESC))?)?(?: LIMIT (\d+))?$/i
     );
@@ -78,7 +94,104 @@ export class MicroSQL {
     return rows;
   }
 
-  private coerceValue(val: any): any {
+  private selectWithJoin(
+    sql: string,
+    match: RegExpMatchArray,
+    joinType: "INNER" | "LEFT"
+  ) {
+    const [
+      ,
+      columns,
+      leftTable,
+      rightTable,
+      leftJoinTable,
+      leftJoinKey,
+      rightJoinTable,
+      rightJoinKey,
+      whereClause,
+      orderTable,
+      orderField,
+      orderDir,
+      limitStr
+    ] = match;
+
+    const leftRows = this.load(leftTable);
+    const rightRows = this.load(rightTable);
+
+    let joinedRows: Row[] = [];
+
+    for (const leftRow of leftRows) {
+      const matchingRightRows = rightRows.filter(
+        rightRow => leftRow[leftJoinKey] === rightRow[rightJoinKey]
+      );
+
+      if (matchingRightRows.length > 0) {
+        for (const rightRow of matchingRightRows) {
+          const joined: Row = {};
+          
+          for (const key in leftRow) {
+            joined[`${leftTable}.${key}`] = leftRow[key];
+            joined[key] = leftRow[key];
+          }
+          
+          for (const key in rightRow) {
+            joined[`${rightTable}.${key}`] = rightRow[key];
+            if (!joined[key]) {
+              joined[key] = rightRow[key];
+            }
+          }
+          
+          joinedRows.push(joined);
+        }
+      } else if (joinType === "LEFT") {
+        const joined: Row = {};
+        
+        for (const key in leftRow) {
+          joined[`${leftTable}.${key}`] = leftRow[key];
+          joined[key] = leftRow[key];
+        }
+        
+        joinedRows.push(joined);
+      }
+    }
+
+    if (whereClause) {
+      joinedRows = joinedRows.filter(row => this.evalWhere(whereClause, row));
+    }
+
+    if (orderField) {
+      const actualOrderField = orderTable ? `${orderTable}.${orderField}` : orderField;
+      joinedRows.sort((a, b) => {
+        const aVal = this.coerceValue(a[actualOrderField]);
+        const bVal = this.coerceValue(b[actualOrderField]);
+        
+        if (aVal < bVal) return orderDir?.toUpperCase() === "DESC" ? 1 : -1;
+        if (aVal > bVal) return orderDir?.toUpperCase() === "DESC" ? -1 : 1;
+        return 0;
+      });
+    }
+
+    if (limitStr) {
+      const limit = parseInt(limitStr, 10);
+      joinedRows = joinedRows.slice(0, limit);
+    }
+
+    if (columns.trim() !== "*") {
+      const fields = columns.split(",").map(f => f.trim());
+      joinedRows = joinedRows.map(r => {
+        const obj: Row = {};
+        for (const f of fields) {
+          const fieldName = f.includes(".") ? f : f;
+          obj[f] = r[fieldName] !== undefined ? r[fieldName] : r[f];
+        }
+        return obj;
+      });
+    }
+
+    return joinedRows;
+  }
+
+  private coerceValue(val): string | number | null | undefined {
     if (val === null || val === undefined) return val;
     const num = Number(val);
     return isNaN(num) ? val : num;
@@ -129,7 +242,7 @@ export class MicroSQL {
     const [, table, setClause, whereClause] = match;
     let data = this.load(table);
 
-    const updates: Record<string, any> = {};
+    const updates: Record<string, string> = {};
     const pairs = this.splitRespectingQuotes(setClause);
     
     pairs.forEach(pair => {
@@ -255,7 +368,7 @@ export class MicroSQL {
 
   private evalCondition(expr: string, row: Row): boolean {
     const match = expr.match(
-      /(\w+)\s*(=|>=|<=|>|<|LIKE|IN)\s*(\([^\)]+\)|["'][^"']*["']|\S+)/i
+      /(\w+)\s*(=|>=|<=|>|<|LIKE|IN)\s*(\([^)]+\)|["'][^"']*["']|\S+)/i
     );
     if (!match) return false;
     
