@@ -1,7 +1,9 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
 
-type Row = Record<string, any>;
+type Row = Record<string, string>;
+
+type QueryResult = Row[] | Row | { updated: number } | void;
 
 export class MicroSQL {
   private dir: string;
@@ -10,21 +12,21 @@ export class MicroSQL {
     this.dir = dir;
   }
 
-  private tablePath(table: string) {
+  private tablePath(table: string): string {
     return path.join(this.dir, `${table}.json`);
   }
 
   private load(table: string): Row[] {
     const p = this.tablePath(table);
     if (!existsSync(p)) return [];
-    return JSON.parse(readFileSync(p, "utf8"));
+    return JSON.parse(readFileSync(p, "utf8")) as Row[];
   }
 
-  private save(table: string, data: Row[]) {
+  private save(table: string, data: Row[]): void {
     writeFileSync(this.tablePath(table), JSON.stringify(data, null, 2));
   }
 
-  query(sql: string): any {
+  query(sql: string): QueryResult {
     sql = sql.trim();
     const [cmd] = sql.split(/\s+/);
     const command = cmd.toUpperCase();
@@ -37,7 +39,7 @@ export class MicroSQL {
     throw new Error(`Unsupported SQL: ${command}`);
   }
 
-  private select(sql: string) {
+  private select(sql: string): Row[] {
     const joinMatch = sql.match(
       /SELECT (.+?) FROM (\w+)\s+(?:INNER\s+)?JOIN\s+(\w+)\s+ON\s+(\w+)\.(\w+)\s*=\s*(\w+)\.(\w+)(?: WHERE (.*?))?(?: ORDER BY (\w+)(?:\.(\w+))?(?: (ASC|DESC))?)?(?: LIMIT (\d+))?$/i
     );
@@ -98,7 +100,7 @@ export class MicroSQL {
     sql: string,
     match: RegExpMatchArray,
     joinType: "INNER" | "LEFT"
-  ) {
+  ): Row[] {
     const [
       ,
       columns,
@@ -191,13 +193,13 @@ export class MicroSQL {
     return joinedRows;
   }
 
-  private coerceValue(val): string | number | null | undefined {
-    if (val === null || val === undefined) return val;
+  private coerceValue(val: string | undefined): string | number {
+    if (val === undefined) return "";
     const num = Number(val);
     return isNaN(num) ? val : num;
   }
 
-  private insert(sql: string) {
+  private insert(sql: string): Row {
     const match = sql.match(
       /INSERT INTO (\w+)\s*\((.+?)\)\s*VALUES\s*\((.+)\)/i
     );
@@ -219,7 +221,7 @@ export class MicroSQL {
     return row;
   }
 
-  private delete(sql: string) {
+  private delete(sql: string): void {
     const match = sql.match(/DELETE FROM (\w+)(?: WHERE (.+))?$/i);
     if (!match) throw new Error("Invalid DELETE syntax");
 
@@ -235,14 +237,14 @@ export class MicroSQL {
     this.save(table, data);
   }
 
-  private update(sql: string) {
+  private update(sql: string): { updated: number } {
     const match = sql.match(/UPDATE (\w+)\s+SET\s+(.+?)(?:\s+WHERE\s+(.+))?$/i);
     if (!match) throw new Error("Invalid UPDATE syntax");
 
     const [, table, setClause, whereClause] = match;
     let data = this.load(table);
 
-    const updates: Record<string, string> = {};
+    const updates: Row = {};
     const pairs = this.splitRespectingQuotes(setClause);
     
     pairs.forEach(pair => {
@@ -378,7 +380,7 @@ export class MicroSQL {
     switch (op.toUpperCase()) {
       case "=": {
         const value = rawValue.replace(/^["']|["']$/g, "");
-        return actual == value;
+        return actual === value;
       }
       case ">": 
         return parseFloat(actual) > parseFloat(rawValue);
