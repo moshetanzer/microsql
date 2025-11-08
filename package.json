@@ -1,6 +1,6 @@
 {
   "name": "microsql",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A tiny file-based database for TypeScript and JavaScript projects.",
   "type": "module",
   "license": "MIT",
@@ -23,7 +23,8 @@
     "dev": "tsdown --watch",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "pnpm run build"
+    "prepublishOnly": "pnpm run build",
+    "release": "bumpp && npm publish"
   },
   "devDependencies": {
     "@types/node": "^24.10.0",
