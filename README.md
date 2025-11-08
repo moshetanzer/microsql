@@ -122,7 +122,6 @@ MicroSQL is perfect for:
 - **Prototypes and demos** - Quick data persistence without infrastructure
 - **CLI tools** - Store configuration and state in readable JSON
 - **Static site generators** - Keep data in version control
-- **Educational projects** - Teach SQL concepts without complex setup
 - **Small applications** - Where SQLite is overkill
 
 ### When NOT to Use MicroSQL
