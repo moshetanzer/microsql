@@ -106,8 +106,10 @@ export class MicroSQL {
       columns,
       leftTable,
       rightTable,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       leftJoinTable,
       leftJoinKey,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       rightJoinTable,
       rightJoinKey,
       whereClause,
