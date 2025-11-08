@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/moshetanzer/micro-db.git"
+    "url": "git+https://github.com/moshetanzer/microsql.git"
   },
   "files": [
     "dist"

@@ -32,7 +32,7 @@ pnpm add microsql
 ## Quick Start
 
 ```typescript
-import { MicroSQL } from "micro-db";
+import { MicroSQL } from "microsql";
 
 const db = new MicroSQL("./data");
 
