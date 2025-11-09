@@ -3,7 +3,13 @@ import path from "node:path";
 
 type Row = Record<string, string>;
 
-type QueryResult = Row[] | Row | { updated: number } | void;
+// PostgreSQL-style result types
+type SelectResult = { rows: Row[] };
+type InsertResult = { rows: Row[]; rowCount: number };
+type UpdateResult = { rows: Row[]; rowCount: number };
+type DeleteResult = { rows: Row[]; rowCount: number };
+
+type QueryResult = SelectResult | InsertResult | UpdateResult | DeleteResult;
 
 export class MicroSQL {
   private dir: string;
@@ -39,7 +45,7 @@ export class MicroSQL {
     throw new Error(`Unsupported SQL: ${command}`);
   }
 
-  private select(sql: string): Row[] {
+  private select(sql: string): SelectResult {
     const joinMatch = sql.match(
       /SELECT (.+?) FROM (\w+)\s+(?:INNER\s+)?JOIN\s+(\w+)\s+ON\s+(\w+)\.(\w+)\s*=\s*(\w+)\.(\w+)(?: WHERE (.*?))?(?: ORDER BY (\w+)(?:\.(\w+))?(?: (ASC|DESC))?)?(?: LIMIT (\d+))?$/i
     );
@@ -49,11 +55,11 @@ export class MicroSQL {
     );
 
     if (joinMatch) {
-      return this.selectWithJoin(sql, joinMatch, "INNER");
+      return { rows: this.selectWithJoin(sql, joinMatch, "INNER") };
     }
     
     if (leftJoinMatch) {
-      return this.selectWithJoin(sql, leftJoinMatch, "LEFT");
+      return { rows: this.selectWithJoin(sql, leftJoinMatch, "LEFT") };
     }
 
     const match = sql.match(
@@ -93,7 +99,7 @@ export class MicroSQL {
       });
     }
 
-    return rows;
+    return { rows };
   }
 
   private selectWithJoin(
@@ -106,10 +112,8 @@ export class MicroSQL {
       columns,
       leftTable,
       rightTable,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       leftJoinTable,
       leftJoinKey,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       rightJoinTable,
       rightJoinKey,
       whereClause,
@@ -201,7 +205,7 @@ export class MicroSQL {
     return isNaN(num) ? val : num;
   }
 
-  private insert(sql: string): Row {
+  private insert(sql: string): InsertResult {
     const match = sql.match(
       /INSERT INTO (\w+)\s*\((.+?)\)\s*VALUES\s*\((.+)\)/i
     );
@@ -220,15 +224,16 @@ export class MicroSQL {
     data.push(row);
     this.save(table, data);
 
-    return row;
+    return { rows: [row], rowCount: 1 };
   }
 
-  private delete(sql: string): void {
+  private delete(sql: string): DeleteResult {
     const match = sql.match(/DELETE FROM (\w+)(?: WHERE (.+))?$/i);
     if (!match) throw new Error("Invalid DELETE syntax");
 
     const [, table, whereClause] = match;
     let data = this.load(table);
+    const originalLength = data.length;
 
     if (whereClause) {
       data = data.filter(row => !this.evalWhere(whereClause, row));
@@ -236,10 +241,13 @@ export class MicroSQL {
       data = [];
     }
 
+    const deletedCount = originalLength - data.length;
     this.save(table, data);
+
+    return { rows: [], rowCount: deletedCount };
   }
 
-  private update(sql: string): { updated: number } {
+  private update(sql: string): UpdateResult {
     const match = sql.match(/UPDATE (\w+)\s+SET\s+(.+?)(?:\s+WHERE\s+(.+))?$/i);
     if (!match) throw new Error("Invalid UPDATE syntax");
 
@@ -270,7 +278,7 @@ export class MicroSQL {
 
     this.save(table, data);
 
-    return { updated: count };
+    return { rows: [], rowCount: count };
   }
 
   private splitRespectingQuotes(str: string, delimiter: string = ","): string[] {
